@@ -2,6 +2,8 @@
 
 # 禁漫姬 (Jinmanji)
 
+<img src="https://s1.ximg.dev/b7/9c/b79c002510f6554d68b17b05016f0877b16d508f.webp" alt="禁漫姬" width="640" />
+
 **第三方禁漫天堂(18comic) Android 客户端**
 
 Material 3 · 双隧道抗封锁（WARP / Tor 插件）· PDF / 压缩包离线下载
