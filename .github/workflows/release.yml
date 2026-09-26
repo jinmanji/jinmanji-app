@@ -36,6 +36,26 @@ jobs:
         with:
           packages: "platforms;android-35 build-tools;34.0.0"
 
+      - name: Prepare signing keystore (repo secrets)
+        env:
+          KS_B64: ${{ secrets.JINMANJI_KEYSTORE_BASE64 }}
+          KS_STORE_PASSWORD: ${{ secrets.JINMANJI_STORE_PASSWORD }}
+          KS_KEY_ALIAS: ${{ secrets.JINMANJI_KEY_ALIAS }}
+          KS_KEY_PASSWORD: ${{ secrets.JINMANJI_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KS_B64" ]; then
+            printf '%s' "$KS_B64" | base64 -d > "$RUNNER_TEMP/jinmanji-release.jks"
+            {
+              echo "JINMANJI_KEYSTORE=$RUNNER_TEMP/jinmanji-release.jks"
+              echo "JINMANJI_STORE_PASSWORD=$KS_STORE_PASSWORD"
+              echo "JINMANJI_KEY_ALIAS=$KS_KEY_ALIAS"
+              echo "JINMANJI_KEY_PASSWORD=$KS_KEY_PASSWORD"
+            } >> "$GITHUB_ENV"
+            echo "✅ 固定签名密钥已装载（与本地构建同一密钥）"
+          else
+            echo "::warning::未配置 JINMANJI_KEYSTORE_BASE64，本次将使用临时调试签名（与其他构建互不兼容！）"
+          fi
+
       - name: Resolve tag
         id: meta
         run: |
@@ -58,6 +78,16 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk "dist/jinmanji-${TAG}.apk"
           cp plugin-tor/build/outputs/apk/debug/plugin-tor-debug.apk "dist/jinmanji-tunnel-tor-plugin-${TAG}.apk"
           ls -la dist/
+
+      - name: Print signing certificate (SHA-256)
+        run: |
+          APKSIGNER=$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | head -1 || true)
+          if [ -n "$APKSIGNER" ]; then
+            for f in dist/*.apk; do
+              echo "== $f"
+              "$APKSIGNER" verify --print-certs "$f" 2>/dev/null | grep -E "SHA-256" | head -1 || true
+            done
+          fi
 
       - name: Update release notes & upload artifacts
         env:

@@ -8,6 +8,23 @@ android {
     compileSdk 35
     buildToolsVersion "34.0.0"
 
+    def jinmanjiKeystore = System.getenv("JINMANJI_KEYSTORE") ?: (project.findProperty("jinmanji.keystore")?.toString())
+    def jinmanjiStorePass = System.getenv("JINMANJI_STORE_PASSWORD") ?: (project.findProperty("jinmanji.storePassword")?.toString())
+    def jinmanjiAlias = System.getenv("JINMANJI_KEY_ALIAS") ?: (project.findProperty("jinmanji.keyAlias")?.toString())
+    def jinmanjiKeyPass = System.getenv("JINMANJI_KEY_PASSWORD") ?: (project.findProperty("jinmanji.keyPassword")?.toString()) ?: jinmanjiStorePass
+    def hasFixedSigning = jinmanjiKeystore != null && file(jinmanjiKeystore).exists()
+
+    signingConfigs {
+        if (hasFixedSigning) {
+            fixed {
+                storeFile file(jinmanjiKeystore)
+                storePassword jinmanjiStorePass
+                keyAlias jinmanjiAlias
+                keyPassword jinmanjiKeyPass
+            }
+        }
+    }
+
     defaultConfig {
         applicationId "com.jinmanji.app"
         minSdk 26
@@ -17,8 +34,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (hasFixedSigning) signingConfig signingConfigs.fixed
+        }
         release {
             minifyEnabled false
+            if (hasFixedSigning) signingConfig signingConfigs.fixed
         }
     }
 

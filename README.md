@@ -66,6 +66,8 @@ cd jinmanji-app
 
 详见 [`.github/workflows/release.yml`](.github/workflows/release.yml)。
 
+> **签名**：CI 通过仓库 Secrets（`JINMANJI_KEYSTORE_BASE64` / `JINMANJI_STORE_PASSWORD` / `JINMANJI_KEY_ALIAS` / `JINMANJI_KEY_PASSWORD`）装载固定密钥签名，与本地构建保持一致，各版本可互相覆盖安装；未配置时会退化为临时调试签名（不同构建互不兼容）。
+
 ## 🧩 项目结构
 
 ```
