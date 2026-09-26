@@ -1,0 +1,42 @@
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+
+android {
+    namespace 'com.mobai.jm.plugin.tor'
+    compileSdk 35
+    buildToolsVersion "34.0.0"
+
+    defaultConfig {
+        applicationId "com.mobai.jm.plugin.tor"
+        minSdk 26
+        targetSdk 35
+        versionCode 12
+        versionName "0.2.1"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    packaging {
+        jniLibs {
+            // 必须解包到 nativeLibraryDir（Android 10+ 唯一允许 exec 的位置）
+            useLegacyPackaging = true
+        }
+    }
+}
+
+dependencies {
+    // 纯原生框架 API，零第三方依赖
+}

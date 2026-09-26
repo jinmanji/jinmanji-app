@@ -1,0 +1,16 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# Android 构建产物
+app/build/
+plugin-tor/build/
+
+# IDE / 杂项
+.idea/
+*.iml
+.DS_Store
+captures/
+*.log
+.kotlin/

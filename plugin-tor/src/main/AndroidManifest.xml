@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+
+    <!-- 签名级保护：仅同签名的「禁漫姬」组件可用 -->
+    <permission
+        android:name="com.mobai.jm.permission.TUNNEL_PLUGIN"
+        android:protectionLevel="signature" />
+
+    <application
+        android:label="禁漫姬·Tor 隧道插件"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <!-- 插件自带界面（自身启动，解除跨应用启动限制的最优路径） -->
+        <activity
+            android:name=".PluginMainActivity"
+            android:exported="true"
+            android:label="禁漫姬·Tor 隧道插件">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- IPC 主通道：Provider.call（比 Service 绑定更低调，进程不存会自动拉起） -->
+        <provider
+            android:name=".TorPluginProvider"
+            android:authorities="com.mobai.jm.plugin.tor.api"
+            android:exported="true"
+            android:permission="com.mobai.jm.permission.TUNNEL_PLUGIN" />
+
+        <!-- 后台常驻：前台服务 + Tor 进程管理 -->
+        <service
+            android:name=".TorPluginService"
+            android:exported="true"
+            android:permission="com.mobai.jm.permission.TUNNEL_PLUGIN"
+            android:foregroundServiceType="dataSync">
+            <intent-filter>
+                <action android:name="com.mobai.jm.TUNNEL_PLUGIN" />
+            </intent-filter>
+        </service>
+    </application>
+</manifest>
