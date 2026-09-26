@@ -1,8 +1,9 @@
 name: Release
 
+# 触发方式（推送代码/标签不会自动构建）：
+#  ① 在 GitHub 上发布 Release 时
+#  ② 在 Actions 页面手动 Run workflow
 on:
-  push:
-    tags: ["v*"]
   release:
     types: [published]
   workflow_dispatch:

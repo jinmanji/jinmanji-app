@@ -51,7 +51,12 @@ cd jinmanji-app
 
 ## 🚀 发布自动化
 
-推送 `v*` 标签（或在 GitHub 上发布 Release）后，Actions 会自动：
+**推送代码或标签不会自动构建**，只有两种方式会触发：
+
+- 在 GitHub 上**发布 Release** 时（推荐）
+- 在 Actions 页面手动 **Run workflow**
+
+触发后 Actions 会自动：
 
 1. 编译两个 APK
 2. 依据「上一标签..当前标签」的提交记录生成更新说明
