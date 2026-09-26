@@ -19,7 +19,7 @@ enum class LogLevel(val order: Int, val label: String) {
 /**
  * 轻量文件日志。
  * 写入 App 外部媒体目录：/Android/media/com.mobai.jm/mobai.log
- * （该目录其他应用/工具可读，方便在 Termux 中直接查看日志排查问题）
+ * （该目录其他应用/工具可读，便于直接查看日志排查问题）
  */
 object DiagLog {
     private const val MAX_SIZE = 300_000L

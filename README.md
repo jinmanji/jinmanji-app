@@ -1,32 +1,82 @@
+<div align="center">
+
 # 禁漫姬 (Jinmanji)
 
-> 第三方禁漫天堂(18comic) Android 客户端：Material 3 界面、双隧道抗封锁（WARP / Tor 插件）、PDF / 压缩包离线下载。
+**第三方禁漫天堂(18comic) Android 客户端**
 
-- 🎨 Material Design 3 · 深色 / 浅色 / 跟随系统
-- 🖼️ 封面预取 + 多层缓存，滚动丝滑
-- ⬇️ 下载支持 PDF / ZIP / 7z（AES-256 加密）/ tar.gz，图像质量四档
-- 🚇 双隧道模式：WARP（内置 usque 内核）与 Tor（独立插件，支持 obfs4 / WebTunnel / Snowflake 桥）
-- 🔍 搜索筛选器、屏蔽标签、随机推荐、历史/收藏、隧道实时仪表
-- 🧩 插件化架构：重组件（如 Tor 隧道）以独立 APK 分发，主包保持精简
+Material 3 · 双隧道抗封锁（WARP / Tor 插件）· PDF / 压缩包离线下载
 
-## 开源协议
+[![Release](https://github.com/jinmanji/jinmanji-app/actions/workflows/release.yml/badge.svg)](https://github.com/jinmanji/jinmanji-app/actions/workflows/release.yml)
+[![License](https://img.shields.io/badge/License-GPLv3-blue.svg)](LICENSE)
+[![Android](https://img.shields.io/badge/Android-8.0%2B%20(API%2026)-brightgreen.svg)](#)
 
-本项目采用 **GNU GPL-3.0** 开源（见 [LICENSE](LICENSE)）。
-第三方组件与灵感来源详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+</div>
 
-> 禁漫姬是一个非官方第三方客户端，仅供学习与研究使用。
+## ✨ 功能亮点
 
-## 构建（Termux 本地）
+- 🎨 **界面**：Material Design 3 · 深色 / 浅色 / 跟随系统
+- 🖼️ **浏览**：随机推荐 / 热门排行 / 最新上架 / 分类 / 标签词云；封面错峰预取 + 多层缓存，滚动丝滑
+- 🔍 **搜索**：关键词与「车牌号」解析；语言 / 标签 / 全彩多选筛选器；结果与滚动位置保留
+- 📖 **阅读**：原尺寸解密还原（无横线瑕疵）、恒预加载；详情页预览墙
+- ⬇️ **下载**：PDF / ZIP / 7z（AES-256，支持加密文件名）/ tar.gz；图像质量四档（解密后按原格式存档）
+- 🚇 **隧道**：WARP（内置 usque 内核）与 Tor（独立插件：obfs4 / WebTunnel / Snowflake 桥，可手动配置）
+- 🧩 **插件化架构**：重组件（如 Tor 隧道）以独立 APK 分发，主包保持精简
+- 🛡️ **隐私**：隐私模式（数据存应用私有目录）、屏蔽标签、隧道实时仪表
+
+## 📥 下载安装
+
+前往 [Releases](../../releases) 下载：
+
+| 文件 | 说明 |
+| --- | --- |
+| `jinmanji-<版本>.apk` | 应用主体 |
+| `jinmanji-tunnel-tor-plugin-<版本>.apk` | Tor 隧道插件（可选；需要 Tor 模式时安装） |
+
+> 建议安装顺序：先装插件，再装主体（两者需使用同一签名构建）。
+
+## 🛠️ 从源码构建
+
+需要：**JDK 17+**、**Android SDK**（platform 35 / build-tools 34.0.0）。
 
 ```sh
-sh build.sh
+git clone https://github.com/jinmanji/jinmanji-app.git
+cd jinmanji-app
+./gradlew assembleDebug     # 或：sh build.sh
 ```
 
-产物：`app/build/outputs/apk/debug/app-debug.apk`
+产物：
 
-环境：JDK 21（`$PREFIX`）、Gradle 8.9（`~/opt/gradle-8.9`）、Android SDK（`~/opt/android-sdk`，platform-35 / build-tools 34）。
+- `app/build/outputs/apk/debug/app-debug.apk` — 应用主体
+- `plugin-tor/build/outputs/apk/debug/plugin-tor-debug.apk` — Tor 隧道插件
 
-## 版本记录
+## 🚀 发布自动化
+
+推送 `v*` 标签（或在 GitHub 上发布 Release）后，Actions 会自动：
+
+1. 编译两个 APK
+2. 依据「上一标签..当前标签」的提交记录生成更新说明
+3. 将说明补全进 Release（保留手写部分）并附带上传 APK
+
+详见 [`.github/workflows/release.yml`](.github/workflows/release.yml)。
+
+## 🧩 项目结构
+
+```
+app/          # 应用主体（UI / 网络 / 下载 / 内置 WARP 隧道）
+plugin-tor/   # Tor 隧道插件（独立 APK：tor + lyrebird + snowflake）
+```
+
+## 📜 开源协议与致谢
+
+- 本项目采用 **GNU GPL-3.0** 开源，详见 [LICENSE](LICENSE)
+- 第三方组件清单与灵感来源：[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+
+## ⚠️ 免责声明
+
+本项目为非官方第三方客户端，仅供学习与技术研究使用；请勿用于任何商业用途或违反当地法律法规的行为。请自行评估并承担使用风险。
+
+<details>
+<summary>📜 更新历史（点击展开）</summary>
 
 - **v0.1.0** — 首页：随机推荐 / 热门排行 / 最新上架；分类浏览（总/月/周/日榜 + 最新）；主题设置（跟随系统 / 浅色 / 深色）
 - **v0.1.1** — 修复：页眉双重留白；"换一批"/刷新加载反馈 + 本地洗牌；分类 0 计数隐藏；首屏提速（域名与 /setting 改为后台异步）；官方图片域名（/setting 下发）；新增文件日志（/Android/media/com.mobai.jm/mobai.log）
@@ -75,3 +125,5 @@ sh build.sh
 - **v0.10.6** — 「解密后按原始格式存档」做实：压缩包图像质量重命名为「视觉无损（解密后·同格式）/ 像素无损（解密后）/ 压缩优先（解密后）/ 原样直存（不解密）」；逐文件按源扩展名输出（源 jpg → 输出 jpg，源 webp → 输出 webp），不再统一转换
 - **v0.11.0** — **隧道插件体系首发**：新增独立插件 APK「禁漫姬·Tor 隧道」（com.mobai.jm.plugin.tor，~18MB：tor 0.4.9.12 + lyrebird[obfs4/WebTunnel] + snowflake-client）；主体新增「隧道模式：WARP / Tor（插件）」，支持手动粘贴网桥行（obfs4/webtunnel/snowflake），引导进度实时显示；插件与主体采用**手工 Binder 协议 + 签名级权限**（仅同签名可绑定），进程隔离、独立升级；流量路由统一出口（WARP=18080 / Tor 插件=18081）
 - **v0.12.0** — 品牌调整：应用更名「**禁漫姬**」；包名（applicationId）改为 `com.jinmanji.app`（全新应用身份，旧版「禁漫姬」数据不迁移）；全新 Logo 全套图标（自适应/单色/圆形/全密度）；插件更名「禁漫姬·Tor 隧道插件」v0.2.1（含图标；内部包名仍 com.mobai.jm.plugin.tor，签名级权限机制不变；已更新拉起主体的新包名）
+
+</details>
