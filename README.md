@@ -2,7 +2,7 @@
 
 # 禁漫姬 (Jinmanji)
 
-<img src="https://s1.ximg.dev/b7/9c/b79c002510f6554d68b17b05016f0877b16d508f.webp" alt="禁漫姬" width="640" />
+<p align="center"><img src="https://s1.ximg.dev/b7/9c/b79c002510f6554d68b17b05016f0877b16d508f.webp" alt="禁漫姬" height="280" /></p>
 
 **第三方禁漫天堂(18comic) Android 客户端**
 
