@@ -22,6 +22,8 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -36,7 +38,9 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -68,7 +72,7 @@ data class SearchRequest(val query: String, val seq: Long)
 /** 车牌号/纯数字 识别：jm123456 / JM123456 / 123456 */
 private val ID_PATTERN = Regex("^\\s*(?:[jJ][mM])?\\s*(\\d{1,10})\\s*$")
 
-@OptIn(ExperimentalFoundationApi::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     request: SearchRequest?,
@@ -87,7 +91,7 @@ fun SearchScreen(
     var showClearDialog by remember { mutableStateOf(false) }
 
     // 筛选下拉
-    var showFilterMenu by remember { mutableStateOf(false) }
+    var showFilterSheet by remember { mutableStateOf(false) }
     var showAddTerm by remember { mutableStateOf(false) }
     var termInput by remember { mutableStateOf("") }
     var termError by remember { mutableStateOf<String?>(null) }
@@ -157,139 +161,14 @@ fun SearchScreen(
                     .padding(horizontal = 16.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box {
-                    OutlinedButton(onClick = { showFilterMenu = true }) {
-                        Text(
-                            if (SearchStore.filterActive)
-                                "筛选（已选 ${SearchStore.selectedLangs.size + SearchStore.selectedTerms.size + (if (SearchStore.fullColorOnly) 1 else 0) + (if (SearchStore.timeRange != "a") 1 else 0) + (if (SearchStore.filterYear.isNotBlank()) 1 else 0)}）"
-                            else "筛选"
-                        )
-                    }
-                    DropdownMenu(
-                        expanded = showFilterMenu,
-                        onDismissRequest = { showFilterMenu = false },
-                    ) {
-                                                  MenuLabel("排序")
-                          listOf(
-                              "mr" to "最新",
-                              "mv" to "最多观看",
-                              "mp" to "最多图片",
-                              "tf" to "最多爱心",
-                          ).forEach { (code, label) ->
-                              DropdownMenuItem(
-                                  text = { Text(label) },
-                                  onClick = { SearchStore.applySortOrder(code) },
-                                  trailingIcon = {
-                                      if (SearchStore.sortOrder == code) {
-                                          Icon(Icons.Default.Check, contentDescription = null)
-                                      }
-                                  },
-                              )
-                          }
-                          HorizontalDivider()
-                          MenuLabel("时间")
-                          listOf(
-                              "a" to "全部时间",
-                              "t" to "今日",
-                              "w" to "本周",
-                              "m" to "本月",
-                          ).forEach { (code, label) ->
-                              DropdownMenuItem(
-                                  text = { Text(label) },
-                                  onClick = { SearchStore.applyTimeRange(code) },
-                                  trailingIcon = {
-                                      if (SearchStore.timeRange == code && SearchStore.filterYear.isBlank()) {
-                                          Icon(Icons.Default.Check, contentDescription = null)
-                                      }
-                                  },
-                              )
-                          }
-                          DropdownMenuItem(
-                              text = {
-                                  Text(
-                                      if (SearchStore.filterYear.isNotBlank())
-                                          "指定年月：${SearchStore.filterYear}-${SearchStore.filterMonth.ifBlank { "全年" }}"
-                                      else "指定年月…"
-                                  )
-                              },
-                              onClick = {
-                                  showFilterMenu = false
-                                  dateSelYear = SearchStore.filterYear
-                                  dateSelMonth = SearchStore.filterMonth
-                                  showDateDialog = true
-                              },
-                              trailingIcon = {
-                                  if (SearchStore.filterYear.isNotBlank()) {
-                                      Icon(Icons.Default.Check, contentDescription = null)
-                                  }
-                              },
-                          )
-                          HorizontalDivider()
-                          MenuLabel("语言（多选）")
-                        SearchStore.builtinLangs.forEach { (code, label) ->
-                            DropdownMenuItem(
-                                text = { Text(label) },
-                                onClick = { SearchStore.toggleLang(code) },
-                                trailingIcon = {
-                                    if (SearchStore.selectedLangs.contains(code)) {
-                                        Icon(Icons.Default.Check, contentDescription = null)
-                                    }
-                                },
-                            )
-                        }
-                        HorizontalDivider()
-                        MenuLabel("属性")
-                        DropdownMenuItem(
-                            text = { Text("全彩") },
-                            onClick = { SearchStore.toggleFullColor() },
-                            trailingIcon = {
-                                if (SearchStore.fullColorOnly) {
-                                    Icon(Icons.Default.Check, contentDescription = null)
-                                }
-                            },
-                        )
-                        if (SearchStore.customTerms.isNotEmpty()) {
-                            HorizontalDivider()
-                            MenuLabel("自定义")
-                            SearchStore.customTerms.forEach { term ->
-                                DropdownMenuItem(
-                                    text = { Text(term, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                                    onClick = { SearchStore.toggleTerm(term) },
-                                    trailingIcon = {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            if (SearchStore.selectedTerms.contains(term)) {
-                                                Icon(Icons.Default.Check, contentDescription = null)
-                                            }
-                                            Icon(
-                                                Icons.Default.Delete,
-                                                contentDescription = "删除",
-                                                modifier = Modifier
-                                                    .size(16.dp)
-                                                    .clickable { SearchStore.removeTerm(term) },
-                                            )
-                                        }
-                                    },
-                                )
-                            }
-                        }
-                        HorizontalDivider()
-                        DropdownMenuItem(
-                            text = { Text("添加筛选词…") },
-                            onClick = {
-                                showFilterMenu = false
-                                termInput = ""
-                                termError = null
-                                showAddTerm = true
-                            },
-                        )
-                        if (SearchStore.filterActive) {
-                            DropdownMenuItem(
-                                text = { Text("清除筛选") },
-                                onClick = { SearchStore.clearFilter() },
-                            )
-                        }
-                    }
+                OutlinedButton(onClick = { showFilterSheet = true }) {
+                    Text(
+                        if (SearchStore.filterActive)
+                            "筛选（已选 ${SearchStore.selectedLangs.size + SearchStore.selectedTerms.size + (if (SearchStore.fullColorOnly) 1 else 0) + (if (SearchStore.timeRange != "a") 1 else 0) + (if (SearchStore.filterYear.isNotBlank()) 1 else 0)}）"
+                        else "筛选"
+                    )
                 }
+
                 Spacer(Modifier.width(10.dp))
                 Text(
                     text = buildString {
@@ -483,6 +362,105 @@ fun SearchScreen(
         }
     }
 
+    if (showFilterSheet) {
+        ModalBottomSheet(onDismissRequest = { showFilterSheet = false }) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp),
+            ) {
+                Text("筛选", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
+
+                FilterSectionTitle("排序")
+                listOf(
+                    "mr" to "最新",
+                    "mv" to "最多观看",
+                    "mp" to "最多图片",
+                    "tf" to "最多爱心",
+                ).forEach { (code, label) ->
+                    FilterRow(label, selected = SearchStore.sortOrder == code) {
+                        SearchStore.applySortOrder(code)
+                    }
+                }
+
+                FilterSectionTitle("时间")
+                listOf(
+                    "a" to "全部时间",
+                    "t" to "今日",
+                    "w" to "本周",
+                    "m" to "本月",
+                ).forEach { (code, label) ->
+                    FilterRow(label, selected = SearchStore.timeRange == code && SearchStore.filterYear.isBlank()) {
+                        SearchStore.applyTimeRange(code)
+                    }
+                }
+                FilterRow(
+                    if (SearchStore.filterYear.isNotBlank())
+                        "指定年月：${SearchStore.filterYear}-${SearchStore.filterMonth.ifBlank { "全年" }}"
+                    else "指定年月…（自定义）",
+                    selected = SearchStore.filterYear.isNotBlank(),
+                ) {
+                    dateSelYear = SearchStore.filterYear
+                    dateSelMonth = SearchStore.filterMonth
+                    showDateDialog = true
+                }
+
+                FilterSectionTitle("语言（多选）")
+                SearchStore.builtinLangs.forEach { (code, label) ->
+                    FilterRow(label, selected = SearchStore.selectedLangs.contains(code)) {
+                        SearchStore.toggleLang(code)
+                    }
+                }
+
+                FilterSectionTitle("属性")
+                FilterRow("全彩", selected = SearchStore.fullColorOnly) { SearchStore.toggleFullColor() }
+
+                if (SearchStore.customTerms.isNotEmpty()) {
+                    FilterSectionTitle("自定义")
+                    SearchStore.customTerms.forEach { term ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { SearchStore.toggleTerm(term) }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(term, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                            if (SearchStore.selectedTerms.contains(term)) {
+                                Icon(Icons.Default.Check, contentDescription = null)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = "删除",
+                                modifier = Modifier
+                                    .size(20.dp)
+                                    .clickable { SearchStore.removeTerm(term) },
+                            )
+                        }
+                    }
+                }
+                FilterRow("添加筛选词…", selected = false) {
+                    termInput = ""
+                    termError = null
+                    showAddTerm = true
+                }
+                if (SearchStore.filterActive) {
+                    FilterRow("清除筛选", selected = false) { SearchStore.clearFilter() }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                Button(
+                    onClick = { showFilterSheet = false },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("完成") }
+                Spacer(Modifier.height(28.dp))
+            }
+        }
+    }
+
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
@@ -614,6 +592,33 @@ fun SearchScreen(
                 TextButton(onClick = { showAddTerm = false }) { Text("取消") }
             },
         )
+    }
+}
+
+@Composable
+private fun FilterSectionTitle(text: String) {
+    Spacer(Modifier.height(14.dp))
+    Text(
+        text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.primary,
+    )
+    Spacer(Modifier.height(2.dp))
+}
+
+@Composable
+private fun FilterRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, modifier = Modifier.weight(1f))
+        if (selected) {
+            Icon(Icons.Default.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+        }
     }
 }
 
