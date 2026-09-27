@@ -250,4 +250,11 @@ class AppPrefs(context: Context) {
         set(value) {
             sp.edit().putString("download_path", value).apply()
         }
+
+    /** 阅读器横向翻页模式（默认关 = 纵向滚动） */
+    var readerHorizontal: Boolean
+        get() = sp.getBoolean("reader_horizontal", false)
+        set(value) {
+            sp.edit().putBoolean("reader_horizontal", value).apply()
+        }
 }

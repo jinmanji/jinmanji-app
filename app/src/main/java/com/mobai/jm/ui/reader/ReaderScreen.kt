@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -86,6 +88,7 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
     val autoCache = remember { AppPrefs(context).autoCache }
     val targetWidth = remember { context.resources.displayMetrics.widthPixels }
     val listState = rememberLazyListState()
+    var horizontal by remember { mutableStateOf(AppPrefs(context).readerHorizontal) }
     val prefetchScope = rememberCoroutineScope()
     val prefetched = remember { mutableSetOf<String>() }
 
@@ -192,7 +195,7 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
             if (sid != scrambleId) {
                 scrambleId = sid
                 prefetched.clear()
-                prefetchAhead(listState.firstVisibleItemIndex)
+                prefetchAhead(currentPage)
                 DiagLog.d("reader scramble updated: ${ep.id} -> $sid")
             }
         }
@@ -233,7 +236,7 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
             title = chapter?.title?.ifBlank { "第 ${chapterIndex + 1} 話" } ?: args.albumTitle,
             onBack = onBack,
             actions = {
-                if (scale > 1.01f) {
+                if (!horizontal && scale > 1.01f) {
                     Text(
                         text = "${"%.1f".format(scale)}x · 重置",
                         style = MaterialTheme.typography.labelMedium,
@@ -247,6 +250,18 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
                     )
                 }
                 if (pages.isNotEmpty()) {
+                    Text(
+                        text = if (horizontal) "横向" else "纵向",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable {
+                                horizontal = !horizontal
+                                AppPrefs(context).readerHorizontal = horizontal
+                            }
+                            .padding(end = 12.dp),
+                    )
+
                     Text(
                         text = "${(currentPage + 1).coerceAtMost(pages.size)}/${pages.size}",
                         style = MaterialTheme.typography.labelMedium,
@@ -273,6 +288,43 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
                     Text(error ?: "", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Spacer(Modifier.height(16.dp))
                     Button(onClick = { reloadTick++ }) { Text("重试") }
+                }
+            }
+
+            horizontal -> {
+                val pagerState = rememberPagerState { pages.size.coerceAtLeast(1) }
+                LaunchedEffect(pages) {
+                    if (pages.isNotEmpty()) {
+                        pagerState.scrollToPage(currentPage.coerceIn(0, pages.lastIndex))
+                    }
+                }
+                LaunchedEffect(pagerState, chapterIndex) {
+                    snapshotFlow { pagerState.currentPage }
+                        .distinctUntilChanged()
+                        .collect { idx ->
+                            currentPage = idx
+                            prefetchAhead(idx)
+                        }
+                }
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surface),
+                ) { idx ->
+                    val photoId = chapter?.id.orEmpty()
+                    var retryTick by remember(pages.getOrNull(idx), chapterIndex) { mutableStateOf(0) }
+                    ReaderPage(
+                        context = context,
+                        photoId = photoId,
+                        filename = pages.getOrNull(idx).orEmpty(),
+                        scrambleId = scrambleId,
+                        targetWidth = targetWidth,
+                        index = idx,
+                        retryKey = retryTick,
+                        fitScreen = true,
+                        onRetry = { retryTick++ },
+                    )
                 }
             }
 
@@ -392,6 +444,7 @@ private fun ReaderPage(
     targetWidth: Int,
     index: Int,
     retryKey: Int,
+    fitScreen: Boolean = false,
     onRetry: () -> Unit,
 ) {
     val state by produceState<PageState>(
@@ -408,13 +461,12 @@ private fun ReaderPage(
         }
     }
 
+    val boxMod = if (fitScreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth().aspectRatio(0.7f)
+
     when (val s = state) {
         is PageState.Loading -> {
             Box(
-                Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(0.7f)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                boxMod.background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
             ) {
                 CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
@@ -423,10 +475,7 @@ private fun ReaderPage(
 
         is PageState.Failed -> {
             Box(
-                Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(0.7f)
-                    .background(MaterialTheme.colorScheme.errorContainer)
+                boxMod.background(MaterialTheme.colorScheme.errorContainer)
                     .clickable { onRetry() },
                 contentAlignment = Alignment.Center,
             ) {
@@ -442,8 +491,8 @@ private fun ReaderPage(
             Image(
                 bitmap = s.bitmap.asImageBitmap(),
                 contentDescription = "第 ${index + 1} 页",
-                contentScale = ContentScale.FillWidth,
-                modifier = Modifier.fillMaxWidth(),
+                contentScale = if (fitScreen) ContentScale.Fit else ContentScale.FillWidth,
+                modifier = if (fitScreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
             )
         }
     }

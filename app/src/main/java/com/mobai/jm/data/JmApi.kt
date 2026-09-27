@@ -646,10 +646,29 @@ object JmApi {
         }
     }
 
-    /** 关键词搜索（page 从 1 开始），返回 (总数, 结果) */
-    suspend fun search(query: String, page: Int = 1): Pair<Int, List<Comic>> = withContext(Dispatchers.IO) {
+    /**
+     * 关键词搜索（page 从 1 开始），返回 (总数, 结果)
+     *  order: mr 最新 / mv 最多观看 / mp 最多图片 / tf 最多爱心
+     *  time:  a 全部 / t 今日 / w 本周 / m 本月
+     *  year/month: 指定上架年月（空串 = 不限；仅有年份时只带 y）
+     */
+    suspend fun search(
+        query: String,
+        page: Int = 1,
+        order: String = "mr",
+        time: String = "a",
+        year: String = "",
+        month: String = "",
+    ): Pair<Int, List<Comic>> = withContext(Dispatchers.IO) {
         val q = URLEncoder.encode(query, "UTF-8")
-        val element = apiGet("/search?search_query=$q&page=$page&o=mr")
+        val o = URLEncoder.encode(order, "UTF-8")
+        val t = URLEncoder.encode(time, "UTF-8")
+        val datePart = when {
+            year.isBlank() -> ""
+            month.isBlank() -> "&y=" + URLEncoder.encode(year, "UTF-8")
+            else -> "&y=" + URLEncoder.encode(year, "UTF-8") + "&m=" + URLEncoder.encode(month, "UTF-8")
+        }
+        val element = apiGet("/search?search_query=$q&page=$page&o=$o&t=$t$datePart")
         val obj = element as? JsonObject ?: return@withContext 0 to emptyList()
         val total = obj["total"]?.jsonPrimitive?.intOrNull ?: 0
         val list = (obj["content"] as? JsonArray)

@@ -92,6 +92,11 @@ fun SearchScreen(
     var termInput by remember { mutableStateOf("") }
     var termError by remember { mutableStateOf<String?>(null) }
 
+    // 指定年月弹窗
+    var showDateDialog by remember { mutableStateOf(false) }
+    var dateSelYear by remember { mutableStateOf("") }
+    var dateSelMonth by remember { mutableStateOf("") }
+
     fun submit(raw: String) {
         val q = raw.trim()
         if (q.isEmpty() || SearchStore.loading) return
@@ -156,7 +161,7 @@ fun SearchScreen(
                     OutlinedButton(onClick = { showFilterMenu = true }) {
                         Text(
                             if (SearchStore.filterActive)
-                                "筛选（已选 ${SearchStore.selectedLangs.size + SearchStore.selectedTerms.size + if (SearchStore.fullColorOnly) 1 else 0}）"
+                                "筛选（已选 ${SearchStore.selectedLangs.size + SearchStore.selectedTerms.size + (if (SearchStore.fullColorOnly) 1 else 0) + (if (SearchStore.timeRange != "a") 1 else 0) + (if (SearchStore.filterYear.isNotBlank()) 1 else 0)}）"
                             else "筛选"
                         )
                     }
@@ -164,7 +169,63 @@ fun SearchScreen(
                         expanded = showFilterMenu,
                         onDismissRequest = { showFilterMenu = false },
                     ) {
-                        MenuLabel("语言（多选）")
+                                                  MenuLabel("排序")
+                          listOf(
+                              "mr" to "最新",
+                              "mv" to "最多观看",
+                              "mp" to "最多图片",
+                              "tf" to "最多爱心",
+                          ).forEach { (code, label) ->
+                              DropdownMenuItem(
+                                  text = { Text(label) },
+                                  onClick = { SearchStore.applySortOrder(code) },
+                                  trailingIcon = {
+                                      if (SearchStore.sortOrder == code) {
+                                          Icon(Icons.Default.Check, contentDescription = null)
+                                      }
+                                  },
+                              )
+                          }
+                          HorizontalDivider()
+                          MenuLabel("时间")
+                          listOf(
+                              "a" to "全部时间",
+                              "t" to "今日",
+                              "w" to "本周",
+                              "m" to "本月",
+                          ).forEach { (code, label) ->
+                              DropdownMenuItem(
+                                  text = { Text(label) },
+                                  onClick = { SearchStore.applyTimeRange(code) },
+                                  trailingIcon = {
+                                      if (SearchStore.timeRange == code && SearchStore.filterYear.isBlank()) {
+                                          Icon(Icons.Default.Check, contentDescription = null)
+                                      }
+                                  },
+                              )
+                          }
+                          DropdownMenuItem(
+                              text = {
+                                  Text(
+                                      if (SearchStore.filterYear.isNotBlank())
+                                          "指定年月：${SearchStore.filterYear}-${SearchStore.filterMonth.ifBlank { "全年" }}"
+                                      else "指定年月…"
+                                  )
+                              },
+                              onClick = {
+                                  showFilterMenu = false
+                                  dateSelYear = SearchStore.filterYear
+                                  dateSelMonth = SearchStore.filterMonth
+                                  showDateDialog = true
+                              },
+                              trailingIcon = {
+                                  if (SearchStore.filterYear.isNotBlank()) {
+                                      Icon(Icons.Default.Check, contentDescription = null)
+                                  }
+                              },
+                          )
+                          HorizontalDivider()
+                          MenuLabel("语言（多选）")
                         SearchStore.builtinLangs.forEach { (code, label) ->
                             DropdownMenuItem(
                                 text = { Text(label) },
@@ -231,9 +292,15 @@ fun SearchScreen(
                 }
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = if (SearchStore.filterActive)
-                        "共 ${SearchStore.total} 条 · 筛后 ${filtered.size} 条"
-                    else "共 ${SearchStore.total} 条结果",
+                    text = buildString {
+                        append("共 ${SearchStore.total} 条")
+                        if (SearchStore.filterActive) {
+                            append(" · 筛后 ${SearchStore.filteredTotal} 条（已扫 ${SearchStore.scanPages} 页）")
+                        }
+                        if (SearchStore.sortOrder != "mr") {
+                            append(" · 排序：${SearchStore.sortLabel()}")
+                        }
+                    },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -407,7 +474,7 @@ fun SearchScreen(
                         PageBar(
                             page = SearchStore.page,
                             pageCount = pageCount,
-                            hasNext = SearchStore.page < pageCount,
+                            hasNext = SearchStore.hasNextPage(),
                             onPageChange = { SearchStore.goToPage(it) },
                         )
                     }
@@ -430,6 +497,82 @@ fun SearchScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) { Text("取消") }
+            },
+        )
+    }
+
+    if (showDateDialog) {
+        val years = listOf("") + (2026 downTo 2006).map { it.toString() }
+        val months = listOf("") + (1..12).map { it.toString() }
+        AlertDialog(
+            onDismissRequest = { showDateDialog = false },
+            title = { Text("指定年月（上架时间）") },
+            text = {
+                Column {
+                    var yearMenu by remember { mutableStateOf(false) }
+                    var monthMenu by remember { mutableStateOf(false) }
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("年份", modifier = Modifier.width(56.dp))
+                        Box {
+                            OutlinedButton(onClick = { yearMenu = true }) {
+                                Text(dateSelYear.ifBlank { "不限" })
+                            }
+                            DropdownMenu(expanded = yearMenu, onDismissRequest = { yearMenu = false }) {
+                                years.forEach { y ->
+                                    DropdownMenuItem(
+                                        text = { Text(y.ifBlank { "不限" }) },
+                                        onClick = {
+                                            dateSelYear = y
+                                            if (y.isBlank()) dateSelMonth = ""
+                                            yearMenu = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("月份", modifier = Modifier.width(56.dp))
+                        Box {
+                            OutlinedButton(
+                                onClick = { monthMenu = true },
+                                enabled = dateSelYear.isNotBlank(),
+                            ) {
+                                Text(dateSelMonth.ifBlank { "全年" })
+                            }
+                            DropdownMenu(expanded = monthMenu, onDismissRequest = { monthMenu = false }) {
+                                months.forEach { m ->
+                                    DropdownMenuItem(
+                                        text = { Text(m.ifBlank { "全年" }) },
+                                        onClick = {
+                                            dateSelMonth = m
+                                            monthMenu = false
+                                        },
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "将与排序、其他筛选条件同时生效",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    SearchStore.setCustomDate(dateSelYear, dateSelMonth)
+                    showDateDialog = false
+                }) { Text("应用") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    SearchStore.setCustomDate("", "")
+                    showDateDialog = false
+                }) { Text("清除") }
             },
         )
     }
