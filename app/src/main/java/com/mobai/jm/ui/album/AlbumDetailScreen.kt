@@ -47,6 +47,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -102,6 +103,7 @@ fun AlbumDetailScreen(
     onBack: () -> Unit,
     onOpenChapter: (JmAlbum, Int, Int) -> Unit,
     onTagSearch: (String) -> Unit,
+    onOpenComments: (JmAlbum) -> Unit,
 ) {
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
@@ -248,6 +250,7 @@ fun AlbumDetailScreen(
                                     TagStats.onRead(current)
                                     onOpenChapter(current, 0, 0)
                                 },
+                                onComments = { onOpenComments(current) },
                                 onDownload = {
                                     val p0 = com.mobai.jm.util.AppPrefs(context)
                                     if (p0.downloadRemember) {
@@ -738,6 +741,7 @@ private fun ActionRow(
     dlTask: DownloadQueue.Task?,
     onRead: () -> Unit,
     onDownload: () -> Unit,
+    onComments: () -> Unit,
 ) {
     Column(
         Modifier
@@ -759,6 +763,9 @@ private fun ActionRow(
                         dlTask?.state == DownloadQueue.State.QUEUED
                     ) "已加入队列" else "下载"
                 )
+            }
+            OutlinedButton(onClick = onComments, modifier = Modifier.weight(0.72f)) {
+                Text("评论")
             }
         }
         val status = when (dlTask?.state) {

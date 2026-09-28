@@ -38,3 +38,15 @@ data class Episode(
     val title: String,
     val sort: String,
 )
+
+
+/** 评论（移动端 /forum 接口；content 已清洗 HTML） */
+data class JmComment(
+    val id: String,
+    val nickname: String,
+    val content: String,
+    val likes: String,
+    val spoiler: Boolean,
+    val time: String,
+    val parentId: String,
+)

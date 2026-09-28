@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
@@ -473,6 +474,36 @@ object JmApi {
     suspend fun chapterImages(photoId: String): List<String> = withContext(Dispatchers.IO) {
         val o = apiGet("/chapter?id=$photoId").jsonObject
         (o["images"] as? JsonArray)?.mapNotNull { it.jsonPrimitive.contentOrNull }.orEmpty()
+    }
+
+    /** 本子评论区（移动端 /forum；page 从 1 开始，每页约 10 条）；返回 (总数, 评论) */
+    suspend fun comments(albumId: String, page: Int = 1): Pair<Int, List<JmComment>> = withContext(Dispatchers.IO) {
+        val element = apiGet("/forum?mode=manhua&aid=$albumId&page=$page&lang=CN")
+        val o = element as? JsonObject ?: return@withContext 0 to emptyList()
+        val total = o["total"]?.jsonPrimitive?.intOrNull ?: 0
+        val list = (o["list"] as? JsonArray)?.mapNotNull { item ->
+            val c = item as? JsonObject ?: return@mapNotNull null
+            JmComment(
+                id = c["CID"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                nickname = (c["nickname"] ?: c["username"])?.jsonPrimitive?.contentOrNull.orEmpty(),
+                content = cleanCommentHtml(c["content"]?.jsonPrimitive?.contentOrNull.orEmpty()),
+                likes = c["likes"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                spoiler = c["spoiler"]?.jsonPrimitive?.booleanOrNull == true ||
+                    c["spoiler"]?.jsonPrimitive?.contentOrNull == "1",
+                time = (c["addtime"] ?: c["update_at"])?.jsonPrimitive?.contentOrNull.orEmpty(),
+                parentId = c["parent_CID"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            )
+        }.orEmpty()
+        total to list
+    }
+
+    /** 评论 HTML 清洗：<br>→换行、去标签、反转义常见实体 */
+    private fun cleanCommentHtml(raw: String): String {
+        var t = raw.replace(Regex("(?i)<br\\s*/?>"), "\n")
+        t = t.replace(Regex("<[^>]+>"), "")
+        t = t.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+            .replace("&quot;", "\"").replace("&#39;", "'").replace("&nbsp;", " ")
+        return t.trim()
     }
 
     private val scrambleCache = ConcurrentHashMap<String, Int>()

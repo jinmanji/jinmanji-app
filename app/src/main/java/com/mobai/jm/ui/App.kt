@@ -57,6 +57,7 @@ import com.mobai.jm.ui.favorites.FavoritesScreen
 import com.mobai.jm.ui.history.HistoryScreen
 import com.mobai.jm.ui.home.HomeScreen
 import com.mobai.jm.ui.random.RandomScreen
+import com.mobai.jm.ui.comments.CommentsScreen
 import com.mobai.jm.ui.reader.ReaderArgs
 import com.mobai.jm.ui.reader.ReaderScreen
 import com.mobai.jm.ui.search.SearchRequest
@@ -71,6 +72,7 @@ fun MoBaiApp(mode: ThemeMode, onModeChange: (ThemeMode) -> Unit) {
     var tab by rememberSaveable { mutableStateOf(0) }
     var albumId by remember { mutableStateOf<String?>(null) }
     var readerArgs by remember { mutableStateOf<ReaderArgs?>(null) }
+    var commentsFor by remember { mutableStateOf<Pair<String, String>?>(null) }
     var searchRequest by remember { mutableStateOf<SearchRequest?>(null) }
     var showRandom by remember { mutableStateOf(false) }
     var showCloud by remember { mutableStateOf(false) }
@@ -243,6 +245,7 @@ fun MoBaiApp(mode: ThemeMode, onModeChange: (ThemeMode) -> Unit) {
                             startPage = page,
                         )
                     },
+                    onOpenComments = { a -> commentsFor = a.id to a.name },
                     onTagSearch = { tag ->
                         albumId = null
                         // 从随机/历史/词云等覆盖层进入的详情：跳搜索时一并关闭覆盖层，否则搜索页会被盖住
@@ -263,8 +266,19 @@ fun MoBaiApp(mode: ThemeMode, onModeChange: (ThemeMode) -> Unit) {
             }
         }
 
+        val currentComments = commentsFor
+        if (currentComments != null) {
+            OverlayLayer {
+                CommentsScreen(
+                    albumId = currentComments.first,
+                    albumTitle = currentComments.second,
+                    onBack = { commentsFor = null },
+                )
+            }
+        }
+
         // 隧道实时 HUD（页眉右上角；阅读器打开时隐藏避免遮挡）
-        if (albumId == null && readerArgs == null) {
+        if (albumId == null && readerArgs == null && commentsFor == null) {
             TunnelHud(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
