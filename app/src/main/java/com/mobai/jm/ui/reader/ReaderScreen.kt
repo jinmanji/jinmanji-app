@@ -133,6 +133,12 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
         }
     }
 
+    // 非阻塞滚动请求：列表尚未组合（横向模式/首帧 loading）时 scrollToItem 会等待布局，
+    // 放进独立协程，避免把"章节加载"流程卡死
+    fun requestScrollToList(target: Int) {
+        prefetchScope.launch { runCatching { listState.scrollToItem(target) } }
+    }
+
     BackHandler(onBack = onBack)
 
     LaunchedEffect(chapterIndex, reloadTick) {
@@ -156,7 +162,7 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
             loading = false
             val target = initialTarget.coerceIn(0, (cached.size - 1).coerceAtLeast(0))
             currentPage = target
-            listState.scrollToItem(target)
+            requestScrollToList(target)
             prefetchAhead(target)
             DiagLog.d("reader 来自缓存: ${ep.id} pages=${cached.size}")
         } else {
@@ -168,10 +174,12 @@ fun ReaderScreen(args: ReaderArgs, onBack: () -> Unit) {
             val fresh = JmApi.chapterImages(ep.id)
             if (fresh != cached) {
                 pages = fresh
+                // 先撤掉全屏 loading，让列表/分页器能够组合；否则 scrollToItem 会等布局、布局又在等 loading 结束 → 死锁
+                loading = false
                 PagesCache.save(ep.id, fresh)
                 val target = initialTarget.coerceIn(0, (fresh.size - 1).coerceAtLeast(0))
                 currentPage = target
-                listState.scrollToItem(target)
+                requestScrollToList(target)
                 prefetched.clear()
                 prefetchAhead(target)
             }
