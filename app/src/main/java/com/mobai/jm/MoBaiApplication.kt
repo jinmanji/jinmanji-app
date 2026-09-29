@@ -12,6 +12,7 @@ import com.mobai.jm.util.StorageUtil
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import java.util.concurrent.TimeUnit
+import com.mobai.jm.util.CrashHandler
 
 /**
  * 全局配置 Coil 图片加载器：
@@ -21,6 +22,12 @@ import java.util.concurrent.TimeUnit
  *  - 失败/慢速日志写入 mobai.log
  */
 class MoBaiApplication : Application(), ImageLoaderFactory {
+
+    override fun onCreate() {
+        super.onCreate()
+        // 全局崩溃兜底（提示页跑在 :crash 独立进程，不受主进程被杀影响）
+        CrashHandler.install(this)
+    }
 
     override fun newImageLoader(): ImageLoader =
         ImageLoader.Builder(this)
