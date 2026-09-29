@@ -59,6 +59,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.mobai.jm.util.CrashTester
 
 @Composable
 fun SettingsScreen(
@@ -68,6 +69,21 @@ fun SettingsScreen(
     onOpenHistory: () -> Unit,
 ) {
     val context = LocalContext.current
+
+    // ── 崩溃自测（开发者模式）：双击立即崩溃 ──
+    var crashTapCount by remember { mutableStateOf(0) }
+    var crashTapAt by remember { mutableStateOf(0L) }
+    fun triggerCrashTest() {
+        val now = System.currentTimeMillis()
+        crashTapCount = if (now - crashTapAt < 2000) crashTapCount + 1 else 1
+        crashTapAt = now
+        if (crashTapCount >= 2) {
+            crashTapCount = 0
+            CrashTester.triggerRandomCrash()
+        } else {
+            Toast.makeText(context, "再点一次将立即崩溃（测试用）", Toast.LENGTH_SHORT).show()
+        }
+    }
     val scope = rememberCoroutineScope()
     val prefs = remember { AppPrefs(context) }
 
@@ -499,6 +515,17 @@ fun SettingsScreen(
                     supportingContent = { Text(JmApi.debugInfo()) },
                 )
             }
+            }
+
+            if (devMode) {
+                item { SectionTitle("崩溃兜底自测（开发者模式）") }
+                item {
+                    ListItem(
+                        headlineContent = { Text("模拟崩溃（双击立即崩溃）") },
+                        supportingContent = { Text("随机触发一种真实崩溃，验证崩溃提示页与剪贴板复制") },
+                        modifier = Modifier.clickable { triggerCrashTest() },
+                    )
+                }
             }
 
             if (devMode) {
