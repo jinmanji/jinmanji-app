@@ -64,7 +64,7 @@ class CrashActivity : ComponentActivity() {
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "请前往 ${CrashHandler.FEEDBACK_SITE} 反馈（粘贴崩溃信息即可）",
+                            "请前往 ${CrashHandler.FEEDBACK_SITE} 反馈",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.primary,
                         )

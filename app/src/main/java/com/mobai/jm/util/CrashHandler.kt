@@ -77,10 +77,13 @@ object CrashHandler {
             appendLine("设备：${Build.MANUFACTURER} ${Build.MODEL}")
             appendLine("系统：Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})")
             appendLine("线程：${thread.name}")
-            appendLine("异常：${error.javaClass.name}: ${error.message}")
+            val msg = error.message?.takeIf { it.isNotBlank() }
+            appendLine("异常：${error.javaClass.name}" + (msg?.let { ": $it" } ?: "（无消息）"))
             appendLine()
             appendLine("--- 堆栈 ---")
             append(error.stackTraceToString())
+            appendLine()
+            appendLine("—— 请前往 $FEEDBACK_SITE 反馈此报告 ——")
         }
     }
 
